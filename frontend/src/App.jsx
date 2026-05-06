@@ -24,6 +24,15 @@ export default function App() {
     }));
   }
 
+  function normalizeFileName(siteName) {
+    return siteName
+      .trim()
+      .toLowerCase()
+      .replace(/\s+/g, "-")
+      .replace(/_+/g, "-")
+      .replace(/[^a-z0-9ăîâșț-]/gi, "");
+  }
+
   async function handleSubmit(e) {
     e.preventDefault();
 
@@ -50,22 +59,42 @@ export default function App() {
         body: JSON.stringify(payload),
       });
 
-      const data = await response.json();
-
       if (!response.ok) {
+        const errorData = await response.json();
+
         setFeedback({
           type: "error",
-          message: data.message || "Datele trimise nu sunt valide.",
-          details: data.errors || null,
+          message: errorData.message || "Datele trimise nu sunt valide.",
+          details: errorData.errors || null,
         });
 
         return;
       }
 
+      const blob = await response.blob();
+      const downloadUrl = window.URL.createObjectURL(blob);
+
+      const fileName = `${normalizeFileName(formData.siteName)}.zip`;
+
+      const link = document.createElement("a");
+      link.href = downloadUrl;
+      link.download = fileName;
+      document.body.appendChild(link);
+      link.click();
+
+      link.remove();
+      window.URL.revokeObjectURL(downloadUrl);
+
       setFeedback({
         type: "success",
-        message: data.message,
-        details: data.site,
+        message: "Site-ul a fost generat și descărcat cu succes.",
+        details: {
+          siteName: formData.siteName,
+          folderName: normalizeFileName(formData.siteName),
+          author: formData.author,
+          includeJs: formData.includeJs,
+          includeCss: formData.includeCss,
+        },
       });
     } catch (error) {
       setFeedback({
@@ -101,8 +130,8 @@ export default function App() {
             Generator de site-uri web
           </h1>
           <p className="text-gray-600 mt-2">
-            Completează formularul, iar aplicația va trimite datele către
-            backend pentru generarea scheletului de site.
+            Completează formularul, iar aplicația va genera automat un schelet
+            de site web și îl va descărca sub formă de arhivă ZIP.
           </p>
         </header>
 
@@ -178,7 +207,7 @@ export default function App() {
                 disabled={loading}
                 className="flex-1 py-2.5 text-sm font-semibold text-white rounded-lg bg-brand hover:bg-brand-dark disabled:opacity-60 disabled:cursor-not-allowed transition-colors"
               >
-                {loading ? "Se trimite..." : "Generează site"}
+                {loading ? "Se generează..." : "Generează și descarcă ZIP"}
               </button>
 
               <button
