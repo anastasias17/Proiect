@@ -1,5 +1,12 @@
 node_modules/
+backend/node_modules/
 .env
+.env.local
 generated/
 *.zip
+dist/
+build/
 .DS_Store
+Thumbs.db
+*.log
+npm-debug.log*
