@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { generateSiteZip } from "./api/siteGeneratorApi";
 
 export default function App() {
   const [formData, setFormData] = useState({
@@ -33,6 +34,20 @@ export default function App() {
       .replace(/[^a-z0-9ăîâșț-]/gi, "");
   }
 
+  function downloadBlob(blob, fileName) {
+    const downloadUrl = window.URL.createObjectURL(blob);
+
+    const link = document.createElement("a");
+    link.href = downloadUrl;
+    link.download = fileName;
+
+    document.body.appendChild(link);
+    link.click();
+
+    link.remove();
+    window.URL.revokeObjectURL(downloadUrl);
+  }
+
   async function handleSubmit(e) {
     e.preventDefault();
 
@@ -51,46 +66,19 @@ export default function App() {
     };
 
     try {
-      const response = await fetch("/api/generate-site", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(payload),
-      });
+      const zipBlob = await generateSiteZip(payload);
 
-      if (!response.ok) {
-        const errorData = await response.json();
+      const folderName = normalizeFileName(formData.siteName);
+      const fileName = `${folderName}.zip`;
 
-        setFeedback({
-          type: "error",
-          message: errorData.message || "Datele trimise nu sunt valide.",
-          details: errorData.errors || null,
-        });
-
-        return;
-      }
-
-      const blob = await response.blob();
-      const downloadUrl = window.URL.createObjectURL(blob);
-
-      const fileName = `${normalizeFileName(formData.siteName)}.zip`;
-
-      const link = document.createElement("a");
-      link.href = downloadUrl;
-      link.download = fileName;
-      document.body.appendChild(link);
-      link.click();
-
-      link.remove();
-      window.URL.revokeObjectURL(downloadUrl);
+      downloadBlob(zipBlob, fileName);
 
       setFeedback({
         type: "success",
         message: "Site-ul a fost generat și descărcat cu succes.",
         details: {
           siteName: formData.siteName,
-          folderName: normalizeFileName(formData.siteName),
+          folderName,
           author: formData.author,
           includeJs: formData.includeJs,
           includeCss: formData.includeCss,
@@ -99,8 +87,8 @@ export default function App() {
     } catch (error) {
       setFeedback({
         type: "error",
-        message: "Nu s-a putut face conexiunea cu backend-ul.",
-        details: [error.message],
+        message: error.message || "Nu s-a putut genera site-ul.",
+        details: error.details || [error.message],
       });
     } finally {
       setLoading(false);
