@@ -74,7 +74,6 @@ ${cssLink}
   <body>
     <header>
       <h1>${escapeHtml(siteName)}</h1>
-      <p>Site generat automat cu Node.js și Express.</p>
     </header>
 
     <main>
